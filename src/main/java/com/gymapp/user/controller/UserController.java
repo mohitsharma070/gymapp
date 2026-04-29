@@ -1,5 +1,6 @@
 package com.gymapp.user.controller;
 
+import com.gymapp.common.constants.SecurityConstants;
 import com.gymapp.common.dto.ApiResponse;
 import com.gymapp.user.dto.UpdateProfileRequest;
 import com.gymapp.user.dto.UserProfileResponse;
@@ -30,7 +31,8 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ApiResponse<UserProfileResponse> getMyProfile(@RequestHeader("X-USER-ID") Long userId) {
+    public ApiResponse<UserProfileResponse> getMyProfile(
+            @RequestHeader(SecurityConstants.USER_ID_HEADER) Long userId) {
         UserProfileResponse response = userService.getUserProfile(userId);
         return ApiResponse.success("My profile fetched successfully", response);
     }

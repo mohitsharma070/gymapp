@@ -1,5 +1,6 @@
 package com.gymapp.security;
 
+import com.gymapp.common.constants.SecurityConstants;
 import com.gymapp.user.entity.User;
 import java.util.Collection;
 import java.util.List;
@@ -21,7 +22,7 @@ public class SecurityUser implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+        return List.of(new SimpleGrantedAuthority(SecurityConstants.ROLE_PREFIX + user.getRole().name()));
     }
 
     @Override

@@ -1,5 +1,7 @@
 package com.gymapp.config;
 
+import com.gymapp.common.constants.ApiPaths;
+import com.gymapp.common.constants.SecurityConstants;
 import com.gymapp.security.CustomUserDetailsService;
 import com.gymapp.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
@@ -34,7 +36,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(ApiPaths.AUTH_BASE + "/**").permitAll()
+                        .requestMatchers(ApiPaths.ADMIN_BASE + "/**").hasRole(SecurityConstants.ROLE_ADMIN)
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

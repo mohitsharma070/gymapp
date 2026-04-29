@@ -1,5 +1,6 @@
 package com.gymapp.payment.service;
 
+import com.gymapp.common.constants.PaymentConstants;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -13,7 +14,7 @@ public class RazorpayService {
         order.put("id", "order_" + UUID.randomUUID().toString().replace("-", ""));
         order.put("amount", amount);
         order.put("currency", currency);
-        order.put("status", "created");
+        order.put("status", PaymentConstants.ORDER_STATUS_CREATED);
         return order;
     }
 

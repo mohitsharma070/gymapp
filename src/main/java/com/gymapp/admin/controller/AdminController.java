@@ -1,6 +1,7 @@
 package com.gymapp.admin.controller;
 
 import com.gymapp.admin.service.AdminService;
+import com.gymapp.common.constants.ApiPaths;
 import com.gymapp.common.dto.ApiResponse;
 import com.gymapp.diet.entity.DietPlan;
 import com.gymapp.payment.entity.Payment;
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping(ApiPaths.ADMIN_BASE)
 public class AdminController {
 
     private final AdminService adminService;

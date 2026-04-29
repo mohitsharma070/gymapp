@@ -1,5 +1,6 @@
 package com.gymapp.subscription.controller;
 
+import com.gymapp.common.constants.SecurityConstants;
 import com.gymapp.common.dto.ApiResponse;
 import com.gymapp.subscription.entity.Subscription;
 import com.gymapp.subscription.service.SubscriptionService;
@@ -20,19 +21,19 @@ public class SubscriptionController {
     }
 
     @GetMapping("/me")
-    public ApiResponse<Subscription> getMySubscription(@RequestHeader("X-USER-ID") Long userId) {
+    public ApiResponse<Subscription> getMySubscription(@RequestHeader(SecurityConstants.USER_ID_HEADER) Long userId) {
         Subscription response = subscriptionService.getMySubscription(userId);
         return ApiResponse.success("Subscription fetched successfully", response);
     }
 
     @PostMapping("/start")
-    public ApiResponse<Subscription> startSubscription(@RequestHeader("X-USER-ID") Long userId) {
+    public ApiResponse<Subscription> startSubscription(@RequestHeader(SecurityConstants.USER_ID_HEADER) Long userId) {
         Subscription response = subscriptionService.startSubscription(userId);
         return ApiResponse.success("Subscription started successfully", response);
     }
 
     @PostMapping("/cancel")
-    public ApiResponse<Subscription> cancelSubscription(@RequestHeader("X-USER-ID") Long userId) {
+    public ApiResponse<Subscription> cancelSubscription(@RequestHeader(SecurityConstants.USER_ID_HEADER) Long userId) {
         Subscription response = subscriptionService.cancelSubscription(userId);
         return ApiResponse.success("Subscription canceled successfully", response);
     }
