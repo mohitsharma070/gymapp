@@ -36,7 +36,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(ApiPaths.AUTH_BASE + "/**").permitAll()
+                        .requestMatchers(
+                                ApiPaths.AUTH_BASE + ApiPaths.REGISTER,
+                                ApiPaths.AUTH_BASE + ApiPaths.LOGIN,
+                                ApiPaths.AUTH_BASE + ApiPaths.FORGOT_PASSWORD,
+                                ApiPaths.AUTH_BASE + ApiPaths.RESET_PASSWORD).permitAll()
                         .requestMatchers(ApiPaths.ADMIN_BASE + "/**").hasRole(SecurityConstants.ROLE_ADMIN)
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())

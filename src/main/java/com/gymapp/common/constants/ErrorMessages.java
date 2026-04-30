@@ -2,12 +2,16 @@ package com.gymapp.common.constants;
 
 public final class ErrorMessages {
 
-    public static final String INVALID_CREDENTIALS = "Invalid email or password";
+    public static final String INVALID_CREDENTIALS = "Invalid username or password";
     public static final String EMAIL_ALREADY_EXISTS = "Email is already registered";
+    public static final String USERNAME_ALREADY_EXISTS = "Username is already taken";
     public static final String USER_NOT_FOUND = "User not found";
     public static final String ACCESS_DENIED = "Access denied";
     public static final String TOKEN_EXPIRED = "Token expired";
     public static final String INVALID_TOKEN = "Invalid token";
+    public static final String CURRENT_PASSWORD_INCORRECT = "Current password is incorrect";
+    public static final String NEW_PASSWORD_MUST_BE_DIFFERENT = "New password must be different from current password";
+    public static final String RESET_TOKEN_INVALID_OR_EXPIRED = "Reset token is invalid or expired";
     public static final String DB_CONSTRAINT_VIOLATION = "Request violates database constraints";
     public static final String SOMETHING_WENT_WRONG = "Something went wrong";
     public static final String INVALID_PAYMENT_SIGNATURE = "Invalid payment signature";
