@@ -7,5 +7,9 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ForgotPasswordResponse {
 
-    private String resetToken;
+    /**
+     * Generic confirmation message. The actual reset token is delivered
+     * exclusively via email link and is never returned in the API response.
+     */
+    private String message;
 }

@@ -3,6 +3,8 @@ package com.gymapp.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
+
 @Component
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
@@ -11,6 +13,16 @@ public class AppProperties {
 
     public Jwt getJwt() {
         return jwt;
+    }
+
+    @PostConstruct
+    public void validate() {
+        String secret = jwt.getSecret();
+        if (secret == null || secret.isBlank() || "change-this-secret-key".equals(secret)) {
+            throw new IllegalStateException(
+                    "Security misconfiguration: APP_JWT_SECRET must be set to a secure random value. "
+                    + "Do not use the default placeholder.");
+        }
     }
 
     public static class Jwt {

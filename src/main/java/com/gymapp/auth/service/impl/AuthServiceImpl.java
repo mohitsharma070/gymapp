@@ -13,6 +13,7 @@ import com.gymapp.auth.service.AuthService;
 import com.gymapp.common.constants.ErrorMessages;
 import com.gymapp.common.enums.Role;
 import com.gymapp.common.exception.BadRequestException;
+import com.gymapp.common.service.EmailService;
 import com.gymapp.security.JwtService;
 import com.gymapp.security.SecurityUser;
 import com.gymapp.user.entity.User;
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -39,19 +41,25 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
     private static final long PASSWORD_RESET_EXPIRY_MINUTES = 30;
+
+    @Value("${app.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
 
     public AuthServiceImpl(
             UserRepository userRepository,
             PasswordResetTokenRepository passwordResetTokenRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            AuthenticationManager authenticationManager) {
+            AuthenticationManager authenticationManager,
+            EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.emailService = emailService;
     }
 
     @Override
@@ -115,7 +123,9 @@ public class AuthServiceImpl implements AuthService {
         Optional<User> optionalUser = userRepository.findByEmail(normalizedEmail);
 
         if (optionalUser.isEmpty()) {
-            return new ForgotPasswordResponse(null);
+            // Return the same message whether the email exists or not (prevents email enumeration)
+            return new ForgotPasswordResponse(
+                    "If an account with that email exists, a password reset link has been sent.");
         }
 
         User user = optionalUser.get();
@@ -131,7 +141,11 @@ public class AuthServiceImpl implements AuthService {
         resetToken.setExpiresAt(now.plusMinutes(PASSWORD_RESET_EXPIRY_MINUTES));
         passwordResetTokenRepository.save(resetToken);
 
-        return new ForgotPasswordResponse(rawToken);
+        String resetLink = frontendUrl + "/reset-password?token=" + rawToken;
+        emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
+
+        return new ForgotPasswordResponse(
+                "If an account with that email exists, a password reset link has been sent.");
     }
 
     @Override

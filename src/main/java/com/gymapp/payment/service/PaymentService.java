@@ -12,6 +12,7 @@ import com.gymapp.subscription.entity.Subscription;
 import com.gymapp.subscription.repository.SubscriptionRepository;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,10 +33,14 @@ public class PaymentService {
     }
 
     @Transactional
-    public Map<String, Object> createOrder(CreateOrderRequest request) {
+    public Map<String, Object> createOrder(CreateOrderRequest request, Long userId) {
         Subscription subscription = subscriptionRepository.findById(request.getSubscriptionId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         ErrorMessages.SUBSCRIPTION_NOT_FOUND_WITH_ID + request.getSubscriptionId()));
+
+        if (!subscription.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
+        }
 
         Map<String, Object> order = razorpayService.createOrder(request.getAmount(), AppConstants.CURRENCY_INR);
 
@@ -56,9 +61,13 @@ public class PaymentService {
     }
 
     @Transactional
-    public Map<String, Object> verifyPayment(String orderId, String paymentId, String signature) {
+    public Map<String, Object> verifyPayment(String orderId, String paymentId, String signature, Long userId) {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.PAYMENT_NOT_FOUND_FOR_ORDER_ID + orderId));
+
+        if (!payment.getSubscription().getUser().getId().equals(userId)) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
+        }
 
         boolean valid = razorpayService.verifyPaymentSignature(orderId, paymentId, signature);
         if (!valid) {

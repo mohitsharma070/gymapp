@@ -6,6 +6,7 @@ import com.gymapp.progress.dto.ProgressLogResponse;
 import com.gymapp.progress.entity.ProgressLog;
 import com.gymapp.progress.repository.ProgressLogRepository;
 import java.util.List;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,8 +20,9 @@ public class ProgressService {
     }
 
     @Transactional
-    public ProgressLogResponse createProgressLog(ProgressLogRequest request) {
+    public ProgressLogResponse createProgressLog(ProgressLogRequest request, Long userId) {
         ProgressLog log = new ProgressLog();
+        log.setUserId(userId);
         log.setLogDate(request.getLogDate());
         log.setWeight(request.getWeight());
         log.setBodyFatPercentage(request.getBodyFatPercentage());
@@ -31,14 +33,18 @@ public class ProgressService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProgressLogResponse> getAllProgressLogs() {
-        return progressLogRepository.findAll().stream().map(this::toResponse).toList();
+    public List<ProgressLogResponse> getProgressLogsByUser(Long userId) {
+        return progressLogRepository.findByUserId(userId).stream().map(this::toResponse).toList();
     }
 
     @Transactional
-    public ProgressLogResponse uploadProgressPhoto(Long progressId, String photoUrl) {
+    public ProgressLogResponse uploadProgressPhoto(Long progressId, String photoUrl, Long userId) {
         ProgressLog log = progressLogRepository.findById(progressId)
                 .orElseThrow(() -> new ResourceNotFoundException("Progress log not found with id: " + progressId));
+
+        if (!log.getUserId().equals(userId)) {
+            throw new AccessDeniedException("You are not allowed to modify another user's progress log");
+        }
 
         log.setPhotoUrl(photoUrl);
         ProgressLog saved = progressLogRepository.save(log);

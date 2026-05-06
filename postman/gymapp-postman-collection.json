@@ -127,7 +127,8 @@
             "auth",
             "forgot-password"
           ]
-        }
+        },
+        "description": "Sends a password-reset link to the given email address.\n\nThe reset token is delivered ONLY via email (never in the API response).\nAfter calling this:\n1. Check the inbox of the email address used.\n2. Copy the token from the ?token= query param in the reset link.\n3. Set the 'resetToken' collection variable manually (or paste it into the Reset Password request body)."
       },
       "event": [
         {
@@ -135,9 +136,16 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "const json = pm.response.json();",
-              "const resetToken = json?.data?.resetToken;",
-              "if (resetToken) pm.collectionVariables.set('resetToken', resetToken);"
+              "// The token is sent via email only — it is NOT in this response.",
+              "// After receiving the email, copy the token from the reset link URL",
+              "// and set it manually: pm.collectionVariables.set('resetToken', '<token-from-email>');",
+              "",
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));" ,
+              "pm.test('Response has message', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.be.true;",
+              "  pm.expect(json.data.message).to.be.a('string');",
+              "});"
             ]
           }
         }
@@ -155,7 +163,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"ResetPass123\",\n  \"confirmPassword\": \"ResetPass123\"\n}"
+          "raw": "{\n  \"token\": \"PASTE_TOKEN_FROM_EMAIL_HERE\",\n  \"newPassword\": \"NewPass123!\",\n  \"confirmPassword\": \"NewPass123!\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/auth/reset-password",
@@ -167,11 +175,27 @@
             "auth",
             "reset-password"
           ]
+        },
+        "description": "Resets the user's password using the token received via email.\n\nHow to get the token:\n1. Call 'Auth - Forgot Password' with the user's email.\n2. Open the reset email → copy the value of ?token= from the link URL.\n3. Paste it into the 'token' field in the request body below."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Password reset succeeded', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.be.true;",
+              "});"
+            ]
+          }
         }
-      }
+      ]
     },
     {
-      "name": "JWT Test - Get Workouts",
+      "name": "JWT Test - Valid Token (expect 200)",
       "request": {
         "method": "GET",
         "header": [
@@ -182,15 +206,960 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/api/workouts",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "workouts"
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "workouts"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Valid token: status is not 401 or 403', () => {",
+              "  pm.expect(pm.response.code).to.not.be.oneOf([401, 403]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "JWT Test - Invalid Token (expect 401)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer this.is.an.invalid.token"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/workouts",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "workouts"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Invalid token: status is 401', () => {",
+              "  pm.response.to.have.status(401);",
+              "});",
+              "pm.test('Invalid token: correct ApiResponse shape', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.be.false;",
+              "  pm.expect(json.message).to.equal('Invalid or expired token');",
+              "  pm.expect(json.data).to.be.null;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "JWT Test - No Token (expect 401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/workouts",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "workouts"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('No token: status is 401', () => {",
+              "  pm.response.to.have.status(401);",
+              "});",
+              "pm.test('No token: correct ApiResponse shape', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.be.false;",
+              "  pm.expect(json.message).to.equal('Authentication required');",
+              "  pm.expect(json.data).to.be.null;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "JWT Test - Admin Route as USER (expect 403)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "users"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Admin route as USER: status is 403', () => {",
+              "  pm.response.to.have.status(403);",
+              "});",
+              "pm.test('Admin route as USER: correct ApiResponse shape', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.be.false;",
+              "  pm.expect(json.message).to.equal('Access denied');",
+              "  pm.expect(json.data).to.be.null;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected API - My Profile (expect 200)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", "me"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('My profile: status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('My profile: returns user data', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.be.true;",
+              "  pm.expect(json.data).to.have.property('username');",
+              "  // Save userId for IDOR test below",
+              "  pm.collectionVariables.set('myUserId', json.data.id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected API - Own Profile by ID (expect 200)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/{{myUserId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", "{{myUserId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Own profile by ID: status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Own profile by ID: success true', () => {",
+              "  pm.expect(pm.response.json().success).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected API - Other User Profile IDOR (expect 403)",
+      "description": "Tries to fetch userId=999 which belongs to someone else. Should be blocked with 403.",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/999",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", "999"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('IDOR profile: status is 403', () => pm.response.to.have.status(403));",
+              "pm.test('IDOR profile: ApiResponse shape', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.be.false;",
+              "  pm.expect(json.data).to.be.null;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected API - My Subscription (expect 200)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/subscriptions/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "subscriptions", "me"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('My subscription: not 401 or 403', () => {",
+              "  pm.expect(pm.response.code).to.not.be.oneOf([401, 403]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected API - Subscription No X-USER-ID Header Needed",
+      "description": "Proves the IDOR fix: no X-USER-ID header is sent. UserId comes from the JWT. Should succeed (200) or fail with business error — NOT 400 MissingRequestHeaderException.",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/subscriptions/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "subscriptions", "me"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('No X-USER-ID header: not 400 MissingRequestHeader', () => {",
+              "  pm.expect(pm.response.code).to.not.equal(400);",
+              "});",
+              "pm.test('No X-USER-ID header: not 401 or 403', () => {",
+              "  pm.expect(pm.response.code).to.not.be.oneOf([401, 403]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected API - Workouts (expect 200)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/workouts",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "workouts"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Workouts: not 401 or 403', () => {",
+              "  pm.expect(pm.response.code).to.not.be.oneOf([401, 403]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected API - Progress Logs (expect 200)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/progress",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "progress"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Progress: not 401 or 403', () => {",
+              "  pm.expect(pm.response.code).to.not.be.oneOf([401, 403]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected API - Diet Plans (expect 200)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/diet-plans",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "diet-plans"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Diet plans: not 401 or 403', () => {",
+              "  pm.expect(pm.response.code).to.not.be.oneOf([401, 403]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "RBAC Security Tests",
+      "item": [
+        {
+          "name": "Setup - Register Admin User",
+          "description": "Step 1: Register a second account that will become the admin. After this, manually run SQL: UPDATE users SET role='ADMIN' WHERE username='admin_test_01';",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Admin Tester\",\n  \"email\": \"admin@test.com\",\n  \"username\": \"admin_test_01\",\n  \"password\": \"Pass1234\",\n  \"confirmPassword\": \"Pass1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin registration: status 200', () => pm.response.to.have.status(200));",
+                  "// IMPORTANT: After this request, run the following SQL on your database:",
+                  "// UPDATE users SET role='ADMIN' WHERE username='admin_test_01';"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Setup - Login Admin User (saves adminToken)",
+          "description": "Step 2: Login with admin account AFTER setting role=ADMIN in DB. Saves adminToken automatically.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin_test_01\",\n  \"password\": \"Pass1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin login: status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "const token = json?.data?.token;",
+                  "if (token) {",
+                  "  pm.collectionVariables.set('adminToken', token);",
+                  "  console.log('adminToken saved');",
+                  "} else {",
+                  "  console.error('No token in response — did you set role=ADMIN in DB?');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Dashboard - as ADMIN (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "dashboard"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin dashboard as ADMIN: status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Admin dashboard: success true', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.data).to.have.property('totalUsers');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Dashboard - as USER (expect 403)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "dashboard"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin dashboard as USER: status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Admin dashboard as USER: access denied message', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.false;",
+                  "  pm.expect(json.message).to.equal('Access denied');",
+                  "  pm.expect(json.data).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Dashboard - No Token (expect 401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "dashboard"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin dashboard no token: status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Admin dashboard no token: correct message', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.false;",
+                  "  pm.expect(json.message).to.equal('Authentication required');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Get All Users - as ADMIN (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin get users: status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Admin get users: returns array', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.data).to.be.an('array');",
+                  "  if (json.data.length > 0) {",
+                  "    // Save a regular userId to use in role update test",
+                  "    const regularUser = json.data.find(u => u.role === 'USER');",
+                  "    if (regularUser) pm.collectionVariables.set('targetUserId', regularUser.id);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Update User Role - as ADMIN (expect 200)",
+          "description": "Promotes a USER to ADMIN. Uses targetUserId saved from the Get All Users request.",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{targetUserId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{targetUserId}}", "role"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update role as ADMIN: status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Update role: role is ADMIN in response', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.data.role).to.equal('ADMIN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Update User Role - as USER (expect 403)",
+          "description": "A regular user should NOT be able to update roles.",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/1/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "1", "role"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update role as USER: status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Update role as USER: access denied', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.false;",
+                  "  pm.expect(json.message).to.equal('Access denied');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Get Exercises - as ADMIN (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/exercises",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "exercises"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin exercises as ADMIN: status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Get Workout Plans - as ADMIN (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/workout-plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "workout-plans"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin workout plans as ADMIN: status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Get Diet Plans - as ADMIN (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/diet-plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "diet-plans"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin diet plans as ADMIN: status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Get Payments - as ADMIN (expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "payments"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin payments as ADMIN: status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Progress - Create Log as USER (saves progressLogId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logDate\": \"2026-05-06\",\n  \"weight\": 75.5,\n  \"bodyFatPercentage\": 18.2,\n  \"notes\": \"Feeling strong today\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/progress",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "progress"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create progress log: status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Create progress log: saves id', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.collectionVariables.set('progressLogId', json.data.id);",
+                  "  console.log('progressLogId saved:', json.data.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Progress - Get Logs (scoped to own user only)",
+          "description": "Should return only the logs belonging to the authenticated user.",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/progress",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "progress"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get progress logs: status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Get progress logs: success true', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Progress - Upload Photo to OWN log (expect 200)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/progress/photos?progressId={{progressLogId}}&photoUrl=https://example.com/photo.jpg",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "progress", "photos"],
+              "query": [
+                { "key": "progressId", "value": "{{progressLogId}}" },
+                { "key": "photoUrl", "value": "https://example.com/photo.jpg" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Upload photo to own log: status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Upload photo: photoUrl set in response', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.data.photoUrl).to.equal('https://example.com/photo.jpg');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Progress - Upload Photo to ANOTHER user's log (expect 403)",
+          "description": "Uses progressId=999999 which belongs to a different user. Should be blocked.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/progress/photos?progressId=999999&photoUrl=https://hack.com/photo.jpg",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "progress", "photos"],
+              "query": [
+                { "key": "progressId", "value": "999999" },
+                { "key": "photoUrl", "value": "https://hack.com/photo.jpg" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Photo upload to other user log: 403 or 404', () => {",
+                  "  // 404 if ID does not exist at all, 403 if it exists but belongs to someone else",
+                  "  pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Workout Complete - as USER (expect 403)",
+          "description": "Regular users cannot mark workout plans as complete — ADMIN only.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/workouts/1/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workouts", "1", "complete"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Workout complete as USER: status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Workout complete as USER: access denied', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.false;",
+                  "  pm.expect(json.message).to.equal('Access denied');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Workout Complete - as ADMIN (expect 200 or 404)",
+          "description": "ADMIN can mark a workout as complete. Returns 404 if workoutId=1 doesn't exist — that is still a pass for auth.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/workouts/1/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workouts", "1", "complete"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Workout complete as ADMIN: not 401 or 403', () => {",
+                  "  pm.expect(pm.response.code).to.not.be.oneOf([401, 403]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payment Create Order - own subscription (expect not 403)",
+          "description": "User creates an order for their own subscriptionId. Change subscriptionId to a valid one owned by this user.",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionId\": 1,\n  \"amount\": 99900\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/create-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "create-order"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Payment create order own sub: not 401 or 403', () => {",
+                  "  // May be 200 or 404/400 if subscription not set up — both are fine for auth testing",
+                  "  pm.expect(pm.response.code).to.not.be.oneOf([401, 403]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payment Create Order - another user's subscription (expect 403)",
+          "description": "User tries to create an order for subscriptionId=999999 which belongs to another user.",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionId\": 999999,\n  \"amount\": 99900\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/create-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "create-order"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Payment create order other user sub: 403 or 404', () => {",
+                  "  // 404 if subscription doesn't exist, 403 if it does but belongs to someone else",
+                  "  pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
+                  "});"
+                ]
+              }
+            }
           ]
         }
-      }
+      ]
     }
   ],
   "variable": [
@@ -203,7 +1172,23 @@
       "value": ""
     },
     {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
       "key": "resetToken",
+      "value": ""
+    },
+    {
+      "key": "myUserId",
+      "value": ""
+    },
+    {
+      "key": "targetUserId",
+      "value": ""
+    },
+    {
+      "key": "progressLogId",
       "value": ""
     }
   ]

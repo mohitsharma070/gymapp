@@ -4,7 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import java.nio.charset.StandardCharsets;
+import io.jsonwebtoken.security.MacAlgorithm;
 import java.util.Date;
 import java.util.Map;
 import javax.crypto.SecretKey;
@@ -20,6 +20,8 @@ public class JwtService {
 
     @Value("${app.jwt.expiration-ms:86400000}")
     private long jwtExpirationMs;
+
+    private static final MacAlgorithm SIGNING_ALGORITHM = Jwts.SIG.HS256;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -42,7 +44,7 @@ public class JwtService {
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(now))
                 .expiration(new Date(exp))
-                .signWith(getSigningKey())
+                .signWith(getSigningKey(), SIGNING_ALGORITHM)
                 .compact();
     }
 
@@ -68,16 +70,13 @@ public class JwtService {
     }
 
     private SecretKey getSigningKey() {
-        String secretValue = jwtSecret.trim();
         try {
-            byte[] keyBytes = Decoders.BASE64.decode(secretValue);
+            byte[] keyBytes = Decoders.BASE64.decode(jwtSecret.trim());
             return Keys.hmacShaKeyFor(keyBytes);
         } catch (IllegalArgumentException ex) {
-            byte[] keyBytes = secretValue.getBytes(StandardCharsets.UTF_8);
-            if (keyBytes.length < 32) {
-                throw new IllegalStateException("JWT secret must be at least 32 bytes long");
-            }
-            return Keys.hmacShaKeyFor(keyBytes);
+            throw new IllegalStateException(
+                    "APP_JWT_SECRET must be a valid Base64-encoded string. "
+                    + "Generate one with: openssl rand -base64 64");
         }
     }
 }

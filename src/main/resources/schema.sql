@@ -8,9 +8,13 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP
 );
+
+-- Backfill is_active for databases created before this column was added
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
 
 CREATE TABLE IF NOT EXISTS workout_plans (
     id BIGSERIAL PRIMARY KEY,
@@ -111,6 +115,11 @@ CREATE INDEX IF NOT EXISTS idx_payments_order_id
 
 CREATE INDEX IF NOT EXISTS idx_progress_logs_log_date
     ON progress_logs (log_date);
+
+-- Add user_id column to progress_logs (idempotent)
+ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES users (id);
+CREATE INDEX IF NOT EXISTS idx_progress_logs_user_id
+    ON progress_logs (user_id);
 CREATE INDEX IF NOT EXISTS idx_workout_plans_scheduled_date
     ON workout_plans (scheduled_date);
 
