@@ -1,5 +1,8 @@
 package com.gymapp.payment.service;
 
+import com.gymapp.common.constants.AppConstants;
+import com.gymapp.common.constants.ErrorMessages;
+import com.gymapp.common.constants.PaymentConstants;
 import com.gymapp.common.exception.BadRequestException;
 import com.gymapp.common.exception.ResourceNotFoundException;
 import com.gymapp.payment.dto.CreateOrderRequest;
@@ -9,6 +12,7 @@ import com.gymapp.subscription.entity.Subscription;
 import com.gymapp.subscription.repository.SubscriptionRepository;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,18 +33,23 @@ public class PaymentService {
     }
 
     @Transactional
-    public Map<String, Object> createOrder(CreateOrderRequest request) {
+    public Map<String, Object> createOrder(CreateOrderRequest request, Long userId) {
         Subscription subscription = subscriptionRepository.findById(request.getSubscriptionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found with id: " + request.getSubscriptionId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        ErrorMessages.SUBSCRIPTION_NOT_FOUND_WITH_ID + request.getSubscriptionId()));
 
-        Map<String, Object> order = razorpayService.createOrder(request.getAmount(), "INR");
+        if (!subscription.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
+        }
+
+        Map<String, Object> order = razorpayService.createOrder(request.getAmount(), AppConstants.CURRENCY_INR);
 
         Payment payment = new Payment();
         payment.setSubscription(subscription);
         payment.setOrderId((String) order.get("id"));
         payment.setAmount(request.getAmount());
-        payment.setCurrency("INR");
-        payment.setStatus("CREATED");
+        payment.setCurrency(AppConstants.CURRENCY_INR);
+        payment.setStatus(PaymentConstants.PAYMENT_STATUS_CREATED);
         paymentRepository.save(payment);
 
         Map<String, Object> response = new HashMap<>();
@@ -52,24 +61,28 @@ public class PaymentService {
     }
 
     @Transactional
-    public Map<String, Object> verifyPayment(String orderId, String paymentId, String signature) {
+    public Map<String, Object> verifyPayment(String orderId, String paymentId, String signature, Long userId) {
         Payment payment = paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found for order id: " + orderId));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.PAYMENT_NOT_FOUND_FOR_ORDER_ID + orderId));
+
+        if (!payment.getSubscription().getUser().getId().equals(userId)) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
+        }
 
         boolean valid = razorpayService.verifyPaymentSignature(orderId, paymentId, signature);
         if (!valid) {
-            throw new BadRequestException("Invalid payment signature");
+            throw new BadRequestException(ErrorMessages.INVALID_PAYMENT_SIGNATURE);
         }
 
         payment.setPaymentId(paymentId);
-        payment.setStatus("PAID");
+        payment.setStatus(PaymentConstants.PAYMENT_STATUS_SUCCESS);
         paymentRepository.save(payment);
 
         Map<String, Object> response = new HashMap<>();
         response.put("verified", true);
         response.put("orderId", orderId);
         response.put("paymentId", paymentId);
-        response.put("status", "PAID");
+        response.put("status", PaymentConstants.PAYMENT_STATUS_SUCCESS);
         return response;
     }
 }

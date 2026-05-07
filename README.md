@@ -16,7 +16,7 @@ Spring Boot backend for a gym and fitness platform with modules for auth, users,
 
 `src/main/java/com/gymapp`
 
-- `auth` - signup/login APIs
+- `auth` - register/login APIs
 - `user` - user profile APIs
 - `security` - JWT/authentication scaffolding
 - `workout` - workout plans and exercises
@@ -78,8 +78,11 @@ app.jwt.expiration-ms=86400000
 
 ### Auth
 
-- `POST /api/auth/signup`
+- `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
+- `POST /api/auth/change-password` (requires JWT)
 
 ### User
 

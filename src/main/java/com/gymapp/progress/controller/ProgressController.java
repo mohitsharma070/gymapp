@@ -4,9 +4,11 @@ import com.gymapp.common.dto.ApiResponse;
 import com.gymapp.progress.dto.ProgressLogRequest;
 import com.gymapp.progress.dto.ProgressLogResponse;
 import com.gymapp.progress.service.ProgressService;
+import com.gymapp.security.SecurityUser;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,22 +29,28 @@ public class ProgressController {
     }
 
     @PostMapping
-    public ApiResponse<ProgressLogResponse> createProgress(@Valid @RequestBody ProgressLogRequest request) {
-        ProgressLogResponse response = progressService.createProgressLog(request);
+    public ApiResponse<ProgressLogResponse> createProgress(
+            @Valid @RequestBody ProgressLogRequest request,
+            Authentication authentication) {
+        Long userId = ((SecurityUser) authentication.getPrincipal()).getId();
+        ProgressLogResponse response = progressService.createProgressLog(request, userId);
         return ApiResponse.success("Progress log created successfully", response);
     }
 
     @GetMapping
-    public ApiResponse<List<ProgressLogResponse>> getProgressLogs() {
-        List<ProgressLogResponse> response = progressService.getAllProgressLogs();
+    public ApiResponse<List<ProgressLogResponse>> getProgressLogs(Authentication authentication) {
+        Long userId = ((SecurityUser) authentication.getPrincipal()).getId();
+        List<ProgressLogResponse> response = progressService.getProgressLogsByUser(userId);
         return ApiResponse.success("Progress logs fetched successfully", response);
     }
 
     @PostMapping("/photos")
     public ApiResponse<ProgressLogResponse> uploadProgressPhoto(
             @RequestParam Long progressId,
-            @RequestParam @NotBlank(message = "Photo URL is required") String photoUrl) {
-        ProgressLogResponse response = progressService.uploadProgressPhoto(progressId, photoUrl);
+            @RequestParam @NotBlank(message = "Photo URL is required") String photoUrl,
+            Authentication authentication) {
+        Long userId = ((SecurityUser) authentication.getPrincipal()).getId();
+        ProgressLogResponse response = progressService.uploadProgressPhoto(progressId, photoUrl, userId);
         return ApiResponse.success("Progress photo uploaded successfully", response);
     }
 }

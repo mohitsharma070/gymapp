@@ -1,5 +1,6 @@
 package com.gymapp.user.service;
 
+import com.gymapp.common.constants.ErrorMessages;
 import com.gymapp.common.exception.ResourceNotFoundException;
 import com.gymapp.user.dto.UpdateProfileRequest;
 import com.gymapp.user.dto.UserProfileResponse;
@@ -33,7 +34,7 @@ public class UserService {
 
     private User findUserById(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.USER_NOT_FOUND_WITH_ID + userId));
     }
 
     private UserProfileResponse mapToProfileResponse(User user) {

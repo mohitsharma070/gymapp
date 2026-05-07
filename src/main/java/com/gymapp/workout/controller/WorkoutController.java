@@ -4,6 +4,7 @@ import com.gymapp.common.dto.ApiResponse;
 import com.gymapp.workout.dto.WorkoutPlanResponse;
 import com.gymapp.workout.service.WorkoutService;
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,6 +34,7 @@ public class WorkoutController {
     }
 
     @PostMapping("/{id}/complete")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<WorkoutPlanResponse> completeWorkout(@PathVariable Long id) {
         WorkoutPlanResponse response = workoutService.completeWorkout(id);
         return ApiResponse.success("Workout marked as complete", response);
