@@ -10,9 +10,13 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "progress_logs")
+@Getter
+@Setter
 public class ProgressLog extends BaseEntity {
 
     @Id
@@ -37,55 +41,6 @@ public class ProgressLog extends BaseEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    public Long getId() {
-        return id;
-    }
-
-    public LocalDate getLogDate() {
-        return logDate;
-    }
-
-    public void setLogDate(LocalDate logDate) {
-        this.logDate = logDate;
-    }
-
-    public Double getWeight() {
-        return weight;
-    }
-
-    public void setWeight(Double weight) {
-        this.weight = weight;
-    }
-
-    public Double getBodyFatPercentage() {
-        return bodyFatPercentage;
-    }
-
-    public void setBodyFatPercentage(Double bodyFatPercentage) {
-        this.bodyFatPercentage = bodyFatPercentage;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-
-    public String getPhotoUrl() {
-        return photoUrl;
-    }
-
-    public void setPhotoUrl(String photoUrl) {
-        this.photoUrl = photoUrl;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
+    @Column(name = "workout_plan_id")
+    private Long workoutPlanId;
 }

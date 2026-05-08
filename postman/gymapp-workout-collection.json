@@ -1,0 +1,405 @@
+{
+  "info": {
+    "_postman_id": "7e6d9ea2-f34c-4f2d-aa26-98d79f0ca1a1",
+    "name": "GymApp Workout APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Setup - Register User",
+      "description": "Creates a normal USER account for workout API testing. If username already exists, continue with Login request.",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Workout Tester\",\n  \"email\": \"workout.tester@example.com\",\n  \"username\": \"workout_user_01\",\n  \"password\": \"Pass1234\",\n  \"confirmPassword\": \"Pass1234\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Setup - Login User (save jwtToken)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"workout_user_01\",\n  \"password\": \"Pass1234\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "const token = json?.data?.token;",
+              "pm.expect(token).to.be.a('string').and.not.empty;",
+              "pm.collectionVariables.set('jwtToken', token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workout - Get All",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/workouts",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "workouts"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get all workouts status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data).to.be.an('array');",
+              "if (json.data.length > 0 && json.data[0].id) {",
+              "  pm.collectionVariables.set('workoutId', String(json.data[0].id));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workout - Get By Id",
+      "description": "Uses {{workoutId}} captured from Get All. If empty, set it manually.",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/workouts/{{workoutId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "workouts",
+            "{{workoutId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get workout by id status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data).to.have.property('id');",
+              "pm.expect(json.data).to.have.property('exercises');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workout - Complete By User",
+      "description": "Now USER is allowed to complete workout.",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/workouts/{{workoutId}}/complete",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "workouts",
+            "{{workoutId}}",
+            "complete"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Complete workout status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data.completed).to.equal(true);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workout Progress - Create Log",
+      "description": "Creates progress linked to the selected workoutId and saves progressId.",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"logDate\": \"2026-05-08\",\n  \"weight\": 74.2,\n  \"bodyFatPercentage\": 17.8,\n  \"notes\": \"Workout session completed\",\n  \"workoutPlanId\": {{workoutId}}\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/progress",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "progress"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create workout progress status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data.workoutPlanId).to.equal(Number(pm.collectionVariables.get('workoutId')));",
+              "if (json.data.id) {",
+              "  pm.collectionVariables.set('progressId', String(json.data.id));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workout Progress - Get All Workout Logs",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/progress/workouts",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "progress",
+            "workouts"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get workout progress logs status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data).to.be.an('array');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workout Progress - Get Logs By Workout Id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/progress/workouts/{{workoutId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "progress",
+            "workouts",
+            "{{workoutId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get workout-specific progress logs status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data).to.be.an('array');",
+              "json.data.forEach(item => pm.expect(item.workoutPlanId).to.equal(Number(pm.collectionVariables.get('workoutId'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workout - Get By Invalid Id (expect 404)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/workouts/99999999",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "workouts",
+            "99999999"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Invalid workout id returns 404', () => pm.response.to.have.status(404));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.false;"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workout - No Token (expect 401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/workouts",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "workouts"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('No token returns 401', () => pm.response.to.have.status(401));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.false;"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "jwtToken",
+      "value": ""
+    },
+    {
+      "key": "workoutId",
+      "value": "1"
+    },
+    {
+      "key": "progressId",
+      "value": ""
+    }
+  ]
+}

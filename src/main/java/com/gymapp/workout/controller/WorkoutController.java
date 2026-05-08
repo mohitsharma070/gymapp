@@ -1,9 +1,11 @@
 package com.gymapp.workout.controller;
 
 import com.gymapp.common.dto.ApiResponse;
+import com.gymapp.common.controller.BaseController;
 import com.gymapp.workout.dto.WorkoutPlanResponse;
 import com.gymapp.workout.service.WorkoutService;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,30 +15,27 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/workouts")
-public class WorkoutController {
+@RequiredArgsConstructor
+public class WorkoutController extends BaseController {
 
     private final WorkoutService workoutService;
-
-    public WorkoutController(WorkoutService workoutService) {
-        this.workoutService = workoutService;
-    }
 
     @GetMapping
     public ApiResponse<List<WorkoutPlanResponse>> getWorkouts() {
         List<WorkoutPlanResponse> response = workoutService.getAllWorkouts();
-        return ApiResponse.success("Workouts fetched successfully", response);
+        return success("Workouts fetched successfully", response);
     }
 
     @GetMapping("/{id}")
     public ApiResponse<WorkoutPlanResponse> getWorkoutById(@PathVariable Long id) {
         WorkoutPlanResponse response = workoutService.getWorkoutById(id);
-        return ApiResponse.success("Workout fetched successfully", response);
+        return success("Workout fetched successfully", response);
     }
 
     @PostMapping("/{id}/complete")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ApiResponse<WorkoutPlanResponse> completeWorkout(@PathVariable Long id) {
         WorkoutPlanResponse response = workoutService.completeWorkout(id);
-        return ApiResponse.success("Workout marked as complete", response);
+        return success("Workout marked as complete", response);
     }
 }

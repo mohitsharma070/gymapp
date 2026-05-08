@@ -7,6 +7,7 @@ import com.gymapp.admin.dto.AdminUserDto;
 import com.gymapp.admin.dto.AdminWorkoutPlanDto;
 import com.gymapp.common.constants.ErrorMessages;
 import com.gymapp.common.enums.Role;
+import com.gymapp.common.exception.BadRequestException;
 import com.gymapp.common.exception.ResourceNotFoundException;
 import com.gymapp.diet.repository.DietPlanRepository;
 import com.gymapp.payment.repository.PaymentRepository;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +45,7 @@ public class AdminService {
         this.paymentRepository = paymentRepository;
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> getDashboardSummary() {
         Map<String, Object> summary = new HashMap<>();
         summary.put("totalUsers", userRepository.count());
@@ -53,40 +56,57 @@ public class AdminService {
         return summary;
     }
 
-    public List<AdminUserDto> getUsers() {
-        return userRepository.findAll().stream()
+    @Transactional(readOnly = true)
+    public List<AdminUserDto> getUsers(Pageable pageable) {
+        return userRepository.findAll(pageable).getContent().stream()
                 .map(AdminUserDto::from)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public AdminUserDto updateUserRole(Long userId, Role newRole) {
+    public AdminUserDto updateUserRole(Long userId, Role newRole, Long actorUserId) {
+        if (userId.equals(actorUserId)) {
+            throw new BadRequestException(ErrorMessages.CANNOT_CHANGE_OWN_ROLE);
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.USER_NOT_FOUND_WITH_ID + userId));
+
+        if (user.getRole() == Role.ADMIN && newRole != Role.ADMIN) {
+            long activeAdminCount = userRepository.countByRoleAndIsActiveTrue(Role.ADMIN);
+            if (activeAdminCount <= 1) {
+                throw new BadRequestException(ErrorMessages.CANNOT_DEMOTE_LAST_ADMIN);
+            }
+        }
+
         user.setRole(newRole);
         return AdminUserDto.from(userRepository.save(user));
     }
 
-    public List<AdminExerciseDto> getExercises() {
-        return exerciseRepository.findAll().stream()
+    @Transactional(readOnly = true)
+    public List<AdminExerciseDto> getExercises(Pageable pageable) {
+        return exerciseRepository.findAll(pageable).getContent().stream()
                 .map(AdminExerciseDto::from)
                 .collect(Collectors.toList());
     }
 
-    public List<AdminWorkoutPlanDto> getWorkoutPlans() {
-        return workoutPlanRepository.findAll().stream()
+    @Transactional(readOnly = true)
+    public List<AdminWorkoutPlanDto> getWorkoutPlans(Pageable pageable) {
+        return workoutPlanRepository.findAll(pageable).getContent().stream()
                 .map(AdminWorkoutPlanDto::from)
                 .collect(Collectors.toList());
     }
 
-    public List<AdminDietPlanDto> getDietPlans() {
-        return dietPlanRepository.findAll().stream()
+    @Transactional(readOnly = true)
+    public List<AdminDietPlanDto> getDietPlans(Pageable pageable) {
+        return dietPlanRepository.findAll(pageable).getContent().stream()
                 .map(AdminDietPlanDto::from)
                 .collect(Collectors.toList());
     }
 
-    public List<AdminPaymentDto> getPayments() {
-        return paymentRepository.findAll().stream()
+    @Transactional(readOnly = true)
+    public List<AdminPaymentDto> getPayments(Pageable pageable) {
+        return paymentRepository.findAll(pageable).getContent().stream()
                 .map(AdminPaymentDto::from)
                 .collect(Collectors.toList());
     }

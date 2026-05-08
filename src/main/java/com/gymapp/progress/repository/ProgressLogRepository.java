@@ -8,5 +8,9 @@ import com.gymapp.progress.entity.ProgressLog;
 
 public interface ProgressLogRepository extends JpaRepository<ProgressLog, Long> {
 
-    List<ProgressLog> findByUserId(Long userId);
+    List<ProgressLog> findByUserIdOrderByLogDateDescIdDesc(Long userId);
+
+    List<ProgressLog> findByUserIdAndWorkoutPlanIdIsNotNullOrderByLogDateDescIdDesc(Long userId);
+
+    List<ProgressLog> findByUserIdAndWorkoutPlanIdOrderByLogDateDescIdDesc(Long userId, Long workoutPlanId);
 }

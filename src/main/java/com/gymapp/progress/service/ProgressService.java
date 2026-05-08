@@ -5,28 +5,34 @@ import com.gymapp.progress.dto.ProgressLogRequest;
 import com.gymapp.progress.dto.ProgressLogResponse;
 import com.gymapp.progress.entity.ProgressLog;
 import com.gymapp.progress.repository.ProgressLogRepository;
+import com.gymapp.workout.repository.WorkoutPlanRepository;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class ProgressService {
 
     private final ProgressLogRepository progressLogRepository;
-
-    public ProgressService(ProgressLogRepository progressLogRepository) {
-        this.progressLogRepository = progressLogRepository;
-    }
+    private final WorkoutPlanRepository workoutPlanRepository;
 
     @Transactional
     public ProgressLogResponse createProgressLog(ProgressLogRequest request, Long userId) {
+        Long workoutPlanId = request.getWorkoutPlanId();
+        if (workoutPlanId != null) {
+            assertWorkoutPlanExists(workoutPlanId);
+        }
+
         ProgressLog log = new ProgressLog();
         log.setUserId(userId);
         log.setLogDate(request.getLogDate());
         log.setWeight(request.getWeight());
         log.setBodyFatPercentage(request.getBodyFatPercentage());
         log.setNotes(request.getNotes());
+        log.setWorkoutPlanId(workoutPlanId);
 
         ProgressLog saved = progressLogRepository.save(log);
         return toResponse(saved);
@@ -34,7 +40,24 @@ public class ProgressService {
 
     @Transactional(readOnly = true)
     public List<ProgressLogResponse> getProgressLogsByUser(Long userId) {
-        return progressLogRepository.findByUserId(userId).stream().map(this::toResponse).toList();
+        return progressLogRepository.findByUserIdOrderByLogDateDescIdDesc(userId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProgressLogResponse> getWorkoutProgressLogsByUser(Long userId) {
+        return progressLogRepository.findByUserIdAndWorkoutPlanIdIsNotNullOrderByLogDateDescIdDesc(userId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProgressLogResponse> getWorkoutProgressLogsByUserAndWorkoutId(Long userId, Long workoutPlanId) {
+        assertWorkoutPlanExists(workoutPlanId);
+        return progressLogRepository.findByUserIdAndWorkoutPlanIdOrderByLogDateDescIdDesc(userId, workoutPlanId).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional
@@ -58,6 +81,13 @@ public class ProgressService {
                 log.getWeight(),
                 log.getBodyFatPercentage(),
                 log.getNotes(),
-                log.getPhotoUrl());
+                log.getPhotoUrl(),
+                log.getWorkoutPlanId());
+    }
+
+    private void assertWorkoutPlanExists(Long workoutPlanId) {
+        if (!workoutPlanRepository.existsById(workoutPlanId)) {
+            throw new ResourceNotFoundException("Workout plan not found with id: " + workoutPlanId);
+        }
     }
 }

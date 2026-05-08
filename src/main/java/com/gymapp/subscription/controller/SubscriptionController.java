@@ -1,7 +1,7 @@
 package com.gymapp.subscription.controller;
 
 import com.gymapp.common.dto.ApiResponse;
-import com.gymapp.security.SecurityUser;
+import com.gymapp.common.controller.BaseController;
 import com.gymapp.subscription.entity.Subscription;
 import com.gymapp.subscription.service.SubscriptionService;
 import org.springframework.security.core.Authentication;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/subscriptions")
-public class SubscriptionController {
+public class SubscriptionController extends BaseController {
 
     private final SubscriptionService subscriptionService;
 
@@ -22,22 +22,22 @@ public class SubscriptionController {
 
     @GetMapping("/me")
     public ApiResponse<Subscription> getMySubscription(Authentication authentication) {
-        Long userId = ((SecurityUser) authentication.getPrincipal()).getId();
+        Long userId = getCurrentUserId(authentication);
         Subscription response = subscriptionService.getMySubscription(userId);
-        return ApiResponse.success("Subscription fetched successfully", response);
+        return success("Subscription fetched successfully", response);
     }
 
     @PostMapping("/start")
     public ApiResponse<Subscription> startSubscription(Authentication authentication) {
-        Long userId = ((SecurityUser) authentication.getPrincipal()).getId();
+        Long userId = getCurrentUserId(authentication);
         Subscription response = subscriptionService.startSubscription(userId);
-        return ApiResponse.success("Subscription started successfully", response);
+        return success("Subscription started successfully", response);
     }
 
     @PostMapping("/cancel")
     public ApiResponse<Subscription> cancelSubscription(Authentication authentication) {
-        Long userId = ((SecurityUser) authentication.getPrincipal()).getId();
+        Long userId = getCurrentUserId(authentication);
         Subscription response = subscriptionService.cancelSubscription(userId);
-        return ApiResponse.success("Subscription canceled successfully", response);
+        return success("Subscription canceled successfully", response);
     }
 }
