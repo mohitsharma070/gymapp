@@ -29,3 +29,5 @@ public class ChangePasswordRequest {
         return newPassword != null && newPassword.equals(confirmPassword);
     }
 }
+
+

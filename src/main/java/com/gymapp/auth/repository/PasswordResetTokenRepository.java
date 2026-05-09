@@ -22,3 +22,5 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
             """)
     int markActiveTokensAsUsed(@Param("userId") Long userId, @Param("usedAt") LocalDateTime usedAt);
 }
+
+

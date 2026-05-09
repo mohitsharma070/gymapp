@@ -70,3 +70,5 @@ public class PasswordResetToken extends BaseEntity {
         this.usedAt = usedAt;
     }
 }
+
+

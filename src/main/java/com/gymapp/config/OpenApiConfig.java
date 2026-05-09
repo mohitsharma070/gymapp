@@ -6,3 +6,5 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
     // OpenAPI bean configuration can be added here when springdoc is integrated.
 }
+
+

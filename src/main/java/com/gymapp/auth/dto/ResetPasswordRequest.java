@@ -29,3 +29,5 @@ public class ResetPasswordRequest {
         return newPassword != null && newPassword.equals(confirmPassword);
     }
 }
+
+

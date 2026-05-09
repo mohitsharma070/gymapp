@@ -85,3 +85,5 @@ public class Subscription extends BaseEntity {
         this.endDate = endDate;
     }
 }
+
+

@@ -28,12 +28,12 @@ public class EmailServiceImpl implements EmailService {
 
             helper.setFrom(fromAddress);
             helper.setTo(toEmail);
-            helper.setSubject("GymApp — Reset your password");
+            helper.setSubject("GymApp - Reset your password");
             helper.setText(buildEmailBody(resetLink), true); // true = HTML
 
             mailSender.send(message);
         } catch (MessagingException | MailException ex) {
-            // Log the error but do not propagate — we never want to leak whether
+            // Log the error but do not propagate - we never want to leak whether
             // a given email address exists in our system via an error response.
             org.slf4j.LoggerFactory.getLogger(EmailServiceImpl.class)
                     .error("Failed to send password-reset email to {}: {}", toEmail, ex.getMessage());
@@ -65,3 +65,6 @@ public class EmailServiceImpl implements EmailService {
                 """.formatted(resetLink, resetLink, resetLink);
     }
 }
+
+
+

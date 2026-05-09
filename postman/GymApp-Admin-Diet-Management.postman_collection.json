@@ -1,0 +1,298 @@
+{
+  "info": {
+    "name": "GymApp - Admin Diet Management APIs",
+    "_postman_id": "8f4a4ad5-e9aa-4b2e-9c8b-4a7d0d5f6c11",
+    "description": "Dedicated collection for Admin Diet Management flows.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login Admin (Save adminToken)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "const token = json?.data?.token || json?.token;",
+              "if (token) pm.collectionVariables.set('adminToken', token);",
+              "pm.test('adminToken saved', () => pm.expect(pm.collectionVariables.get('adminToken')).to.be.a('string').and.not.empty);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Diet - List Plans",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/diet-plans?page=0&size=20&sortBy=id&direction=DESC",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "diet-plans"],
+          "query": [
+            { "key": "page", "value": "0" },
+            { "key": "size", "value": "20" },
+            { "key": "sortBy", "value": "id" },
+            { "key": "direction", "value": "DESC" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('success true', () => pm.expect(json.success).to.be.true);",
+              "const items = json?.data?.items || [];",
+              "if (items.length > 0) pm.collectionVariables.set('dietPlanId', String(items[0].id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Diet - Create Plan",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Lean Cut Plan\",\n  \"goal\": \"Lean Cut\",\n  \"planDate\": \"2026-05-09\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/diet-plans",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "diet-plans"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('success true', () => pm.expect(json.success).to.be.true);",
+              "if (json?.data?.id) pm.collectionVariables.set('dietPlanId', String(json.data.id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Diet - Update Plan",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Lean Cut Plan Updated\",\n  \"goal\": \"Body Recomposition\",\n  \"planDate\": \"2026-05-10\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/diet-plans/{{dietPlanId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "diet-plans", "{{dietPlanId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('success true', () => pm.expect(json.success).to.be.true);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Diet - Add Meal To Plan",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Oats Bowl\",\n  \"mealType\": \"BREAKFAST\",\n  \"calories\": 420\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/diet-plans/{{dietPlanId}}/meals",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "diet-plans", "{{dietPlanId}}", "meals"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('success true', () => pm.expect(json.success).to.be.true);",
+              "if (json?.data?.id) pm.collectionVariables.set('mealId', String(json.data.id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Diet - Update Meal",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Oats Bowl + Whey\",\n  \"mealType\": \"BREAKFAST\",\n  \"calories\": 520\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/meals/{{mealId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "meals", "{{mealId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('success true', () => pm.expect(json.success).to.be.true);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Diet - Assign Plan To User",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/users/{{targetUserId}}/diet-plan/{{dietPlanId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "users", "{{targetUserId}}", "diet-plan", "{{dietPlanId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('success true', () => pm.expect(json.success).to.be.true);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Diet - Delete Meal",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/meals/{{mealId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "meals", "{{mealId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('success true', () => pm.expect(json.success).to.be.true);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Diet - Delete Plan",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/diet-plans/{{dietPlanId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "diet-plans", "{{dietPlanId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('success true', () => pm.expect(json.success).to.be.true);"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "adminUsername", "value": "admin1" },
+    { "key": "adminPassword", "value": "Admin1234" },
+    { "key": "adminToken", "value": "" },
+    { "key": "dietPlanId", "value": "" },
+    { "key": "mealId", "value": "" },
+    { "key": "targetUserId", "value": "" }
+  ]
+}

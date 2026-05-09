@@ -36,3 +36,5 @@ public class AdminPaymentDto {
     public String getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }
+
+

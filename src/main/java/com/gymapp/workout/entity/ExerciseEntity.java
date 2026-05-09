@@ -9,10 +9,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "exercises")
-public class Exercise {
+@Getter
+@Setter
+public class ExerciseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,41 +33,7 @@ public class Exercise {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workout_plan_id", nullable = false)
-    private WorkoutPlan workoutPlan;
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getSets() {
-        return sets;
-    }
-
-    public void setSets(Integer sets) {
-        this.sets = sets;
-    }
-
-    public Integer getReps() {
-        return reps;
-    }
-
-    public void setReps(Integer reps) {
-        this.reps = reps;
-    }
-
-    public WorkoutPlan getWorkoutPlan() {
-        return workoutPlan;
-    }
-
-    public void setWorkoutPlan(WorkoutPlan workoutPlan) {
-        this.workoutPlan = workoutPlan;
-    }
+    private WorkoutPlanEntity workoutPlan;
 }
+
+

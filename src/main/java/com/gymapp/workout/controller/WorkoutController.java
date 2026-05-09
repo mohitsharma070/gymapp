@@ -1,9 +1,16 @@
 package com.gymapp.workout.controller;
 
+import com.gymapp.common.constants.PagingConstants;
+import com.gymapp.common.constants.ApiMessages;
+import com.gymapp.common.controller.BaseController;
 import com.gymapp.common.dto.ApiResponse;
-import com.gymapp.workout.dto.WorkoutPlanResponse;
+import com.gymapp.common.dto.PageRequestDto;
+import com.gymapp.common.dto.PageResponseDto;
+import com.gymapp.common.util.PageableFactory;
+import com.gymapp.common.web.annotation.CurrentUserId;
+import com.gymapp.workout.dto.WorkoutPlanResponseDto;
 import com.gymapp.workout.service.WorkoutService;
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,30 +20,41 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/workouts")
-public class WorkoutController {
+@RequiredArgsConstructor
+public class WorkoutController extends BaseController {
 
     private final WorkoutService workoutService;
 
-    public WorkoutController(WorkoutService workoutService) {
-        this.workoutService = workoutService;
-    }
-
     @GetMapping
-    public ApiResponse<List<WorkoutPlanResponse>> getWorkouts() {
-        List<WorkoutPlanResponse> response = workoutService.getAllWorkouts();
-        return ApiResponse.success("Workouts fetched successfully", response);
+    public ApiResponse<PageResponseDto<WorkoutPlanResponseDto>> getWorkouts(
+            PageRequestDto pageRequest,
+            @CurrentUserId Long userId) {
+        var pageable = PageableFactory.from(
+                pageRequest,
+                PagingConstants.DEFAULT_PAGE,
+                PagingConstants.DEFAULT_SIZE,
+                PagingConstants.DEFAULT_SORT,
+                PagingConstants.DEFAULT_DIRECTION);
+        PageResponseDto<WorkoutPlanResponseDto> response = workoutService.getAllWorkouts(pageable, userId);
+        return success(String.format(ApiMessages.FETCHED_SUCCESSFULLY, "Workouts"), response);
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<WorkoutPlanResponse> getWorkoutById(@PathVariable Long id) {
-        WorkoutPlanResponse response = workoutService.getWorkoutById(id);
-        return ApiResponse.success("Workout fetched successfully", response);
+    public ApiResponse<WorkoutPlanResponseDto> getWorkoutById(
+            @PathVariable Long id,
+            @CurrentUserId Long userId) {
+        WorkoutPlanResponseDto response = workoutService.getWorkoutById(id, userId);
+        return success(String.format(ApiMessages.FETCHED_SUCCESSFULLY, "Workout"), response);
     }
 
     @PostMapping("/{id}/complete")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<WorkoutPlanResponse> completeWorkout(@PathVariable Long id) {
-        WorkoutPlanResponse response = workoutService.completeWorkout(id);
-        return ApiResponse.success("Workout marked as complete", response);
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ApiResponse<WorkoutPlanResponseDto> completeWorkout(
+            @PathVariable Long id,
+            @CurrentUserId Long userId) {
+        WorkoutPlanResponseDto response = workoutService.completeWorkout(id, userId);
+        return success("Workout marked as complete", response);
     }
 }
+
+

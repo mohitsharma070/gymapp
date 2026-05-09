@@ -7,3 +7,5 @@ public interface FileStorageService {
 
     FileUploadResponse uploadFile(MultipartFile file);
 }
+
+

@@ -20,3 +20,5 @@ public interface AuthService {
 
     void changePassword(String username, ChangePasswordRequest request);
 }
+
+

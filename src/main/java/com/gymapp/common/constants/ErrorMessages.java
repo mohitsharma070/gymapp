@@ -21,7 +21,11 @@ public final class ErrorMessages {
     public static final String PAYMENT_NOT_FOUND_FOR_ORDER_ID = "Payment not found for order id: ";
     public static final String ACTIVE_SUBSCRIPTION_ALREADY_EXISTS = "Active subscription already exists";
     public static final String ONLY_ACTIVE_SUBSCRIPTIONS_CAN_BE_CANCELED = "Only active subscriptions can be canceled";
+    public static final String CANNOT_CHANGE_OWN_ROLE = "You cannot change your own role";
+    public static final String CANNOT_DEMOTE_LAST_ADMIN = "Cannot demote the last active admin user";
 
     private ErrorMessages() {
     }
 }
+
+

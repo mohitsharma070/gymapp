@@ -1,0 +1,526 @@
+{
+  "info": {
+    "_postman_id": "f4ef844d-991d-4c57-a2cb-c9f2c433efc9",
+    "name": "GymApp Admin APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Setup - Register Admin",
+      "description": "Register admin account. Then run SQL manually: UPDATE users SET role='ADMIN', updated_at=now() WHERE username='admin1';",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Admin User\",\n  \"email\": \"admin@gymapp.com\",\n  \"username\": \"admin1\",\n  \"password\": \"Admin1234\",\n  \"confirmPassword\": \"Admin1234\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Setup - Login Admin (save adminToken)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin1\",\n  \"password\": \"Admin1234\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json?.data?.token) pm.collectionVariables.set('adminToken', json.data.token);",
+              "pm.test('Login status 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Dashboard",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/dashboard",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "dashboard"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Dashboard status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - List Users (save targetUserId)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "users"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('List users status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "const nonAdmin = (json?.data || []).find(u => u.role !== 'ADMIN');",
+              "const admin = (json?.data || []).find(u => u.role === 'ADMIN');",
+              "if (nonAdmin?.id) pm.collectionVariables.set('targetUserId', String(nonAdmin.id));",
+              "if (admin?.id) pm.collectionVariables.set('adminUserId', String(admin.id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Update User Role",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"TRAINER\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/users/{{targetUserId}}/role",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "users",
+            "{{targetUserId}}",
+            "role"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Update role status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Get Exercises",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/exercises",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "exercises"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Get Workout Plans",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/workout-plans",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "workout-plans"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Get Diet Plans",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/diet-plans",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "diet-plans"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Get Payments",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/payments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "payments"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Dashboard No Token (expect 401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/dashboard",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "dashboard"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 401', () => pm.response.to.have.status(401));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.false;"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Dashboard Invalid Token (expect 401)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer invalid.token.value"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/dashboard",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "dashboard"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 401', () => pm.response.to.have.status(401));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.false;"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Update Own Role (expect 400)",
+      "description": "Uses adminUserId captured from Admin - List Users. Should fail with business rule error.",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"TRAINER\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/users/{{adminUserId}}/role",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "users",
+            "{{adminUserId}}",
+            "role"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.false;"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Demote Last Active Admin (expect 400)",
+      "description": "Precondition: login as a different admin user; set that actor user inactive in DB after login so only one active admin remains, then target that sole active admin id in {{lastActiveAdminUserId}}.",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"USER\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/users/{{lastActiveAdminUserId}}/role",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "users",
+            "{{lastActiveAdminUserId}}",
+            "role"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const json = pm.response.json();",
+              "pm.expect(json.success).to.be.false;"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "targetUserId",
+      "value": ""
+    },
+    {
+      "key": "adminUserId",
+      "value": ""
+    },
+    {
+      "key": "lastActiveAdminUserId",
+      "value": ""
+    }
+  ]
+}
