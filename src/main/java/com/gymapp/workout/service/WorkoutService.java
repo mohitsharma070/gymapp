@@ -36,7 +36,7 @@ public class WorkoutService {
         Page<WorkoutPlanEntity> page = workoutPlanRepository.findAll(pageable);
         List<WorkoutPlanEntity> plans = page.getContent();
         if (plans.isEmpty()) {
-            return PageResponseDto.from(page.map(plan -> toResponse(plan, Collections.emptyList())));
+            return PageResponseDto.from(page.map(plan -> toResponse(plan, Collections.emptyList(), false)));
         }
 
         List<Long> planIds = plans.stream().map(WorkoutPlanEntity::getId).toList();

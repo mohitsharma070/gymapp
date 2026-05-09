@@ -11,9 +11,11 @@ import com.gymapp.common.enums.Role;
 import com.gymapp.common.exception.BadRequestException;
 import com.gymapp.common.exception.ResourceNotFoundException;
 import com.gymapp.admin.dto.AdminDietPlanCreateRequest;
+import com.gymapp.diet.entity.DietGoalEntity;
 import com.gymapp.diet.entity.DietPlanEntity;
 import com.gymapp.diet.repository.DietPlanRepository;
 import com.gymapp.diet.repository.MealRepository;
+import com.gymapp.diet.service.DietGoalCatalogService;
 import com.gymapp.payment.repository.PaymentRepository;
 import com.gymapp.user.entity.User;
 import com.gymapp.user.repository.UserRepository;
@@ -42,6 +44,8 @@ class AdminServiceTest {
     private MealRepository mealRepository;
     @Mock
     private PaymentRepository paymentRepository;
+    @Mock
+    private DietGoalCatalogService dietGoalCatalogService;
 
     private AdminService adminService;
 
@@ -53,7 +57,8 @@ class AdminServiceTest {
                 workoutPlanRepository,
                 dietPlanRepository,
                 mealRepository,
-                paymentRepository);
+                paymentRepository,
+                dietGoalCatalogService);
     }
 
     @Test
@@ -104,29 +109,45 @@ class AdminServiceTest {
     }
 
     @Test
-    void createDietPlan_rejectsInvalidGoal() {
+    void createDietPlan_resolvesGoalAndSaves() {
         AdminDietPlanCreateRequest request = new AdminDietPlanCreateRequest();
         setField(request, "title", "Plan A");
-        setField(request, "goal", "CUSTOM_GOAL");
+        setField(request, "goal", "Lean Cut");
         setField(request, "planDate", java.time.LocalDate.now());
+        DietGoalEntity goal = goal("LEAN_CUT", "Lean Cut");
+        when(dietGoalCatalogService.resolveOrCreate("Lean Cut")).thenReturn(goal);
+        when(dietPlanRepository.save(org.mockito.ArgumentMatchers.any(DietPlanEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        BadRequestException ex = assertThrows(BadRequestException.class, () -> adminService.createDietPlan(request));
-        assertEquals("Invalid goal. Allowed values: WEIGHT_LOSS, MUSCLE_GAIN, MAINTENANCE, FAT_LOSS", ex.getMessage());
+        var response = adminService.createDietPlan(request);
+        assertEquals("Plan A", response.getTitle());
+        assertEquals("Lean Cut", response.getGoal());
     }
 
     @Test
-    void updateDietPlan_rejectsInvalidGoal() {
+    void updateDietPlan_resolvesGoalAndUpdates() {
         DietPlanEntity plan = new DietPlanEntity();
         setId(plan, 7L);
         when(dietPlanRepository.findById(7L)).thenReturn(Optional.of(plan));
 
         AdminDietPlanCreateRequest request = new AdminDietPlanCreateRequest();
         setField(request, "title", "Plan B");
-        setField(request, "goal", "CUSTOM_GOAL");
+        setField(request, "goal", "Body Recomposition");
         setField(request, "planDate", java.time.LocalDate.now());
+        DietGoalEntity goal = goal("BODY_RECOMPOSITION", "Body Recomposition");
+        when(dietGoalCatalogService.resolveOrCreate("Body Recomposition")).thenReturn(goal);
+        when(dietPlanRepository.save(plan)).thenReturn(plan);
 
-        BadRequestException ex = assertThrows(BadRequestException.class, () -> adminService.updateDietPlan(7L, request));
-        assertEquals("Invalid goal. Allowed values: WEIGHT_LOSS, MUSCLE_GAIN, MAINTENANCE, FAT_LOSS", ex.getMessage());
+        var response = adminService.updateDietPlan(7L, request);
+        assertEquals("Plan B", response.getTitle());
+        assertEquals("Body Recomposition", response.getGoal());
+    }
+
+    private DietGoalEntity goal(String code, String displayName) {
+        DietGoalEntity goal = new DietGoalEntity();
+        goal.setCode(code);
+        goal.setDisplayName(displayName);
+        return goal;
     }
 
     private User user(Long id, Role role, boolean active) {

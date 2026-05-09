@@ -3,16 +3,18 @@ package com.gymapp.diet.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 import com.gymapp.common.exception.BadRequestException;
+import com.gymapp.diet.entity.DietGoalEntity;
 import com.gymapp.diet.entity.DietPlanEntity;
 import com.gymapp.diet.entity.MealEntity;
-import com.gymapp.diet.enums.DietGoal;
 import com.gymapp.diet.enums.MealType;
 import com.gymapp.diet.mapper.DietResponseMapper;
 import com.gymapp.diet.repository.DietPlanRepository;
 import com.gymapp.diet.repository.MealProgressRepository;
 import com.gymapp.diet.repository.MealRepository;
+import com.gymapp.diet.service.DietGoalCatalogService;
 import com.gymapp.user.entity.User;
 import com.gymapp.user.repository.UserRepository;
 import java.lang.reflect.Field;
@@ -36,6 +38,8 @@ class DietServiceTest {
     private MealProgressRepository mealProgressRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private DietGoalCatalogService dietGoalCatalogService;
 
     private DietService dietService;
 
@@ -46,13 +50,14 @@ class DietServiceTest {
                 mealRepository,
                 mealProgressRepository,
                 userRepository,
-                new DietResponseMapper());
+                new DietResponseMapper(),
+                dietGoalCatalogService);
     }
 
     @Test
     void completeMeal_rejectsWhenUserHasNoAssignedPlan() {
         User user = user(1L, null);
-        MealEntity meal = meal(10L, dietPlan(5L, DietGoal.WEIGHT_LOSS));
+        MealEntity meal = meal(10L, dietPlan(5L, "WEIGHT_LOSS", "Weight Loss"));
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(mealRepository.findById(10L)).thenReturn(Optional.of(meal));
 
@@ -62,9 +67,9 @@ class DietServiceTest {
 
     @Test
     void completeMeal_rejectsWhenMealNotInAssignedPlan() {
-        DietPlanEntity assigned = dietPlan(1L, DietGoal.WEIGHT_LOSS);
+        DietPlanEntity assigned = dietPlan(1L, "WEIGHT_LOSS", "Weight Loss");
         User user = user(1L, assigned);
-        MealEntity meal = meal(10L, dietPlan(2L, DietGoal.MUSCLE_GAIN));
+        MealEntity meal = meal(10L, dietPlan(2L, "MUSCLE_GAIN", "Muscle Gain"));
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(mealRepository.findById(10L)).thenReturn(Optional.of(meal));
 
@@ -74,8 +79,8 @@ class DietServiceTest {
 
     @Test
     void getTodayDietPlan_picksFirstFromOrderedResults() {
-        DietPlanEntity latest = dietPlan(9L, DietGoal.WEIGHT_LOSS);
-        DietPlanEntity older = dietPlan(5L, DietGoal.MUSCLE_GAIN);
+        DietPlanEntity latest = dietPlan(9L, "WEIGHT_LOSS", "Weight Loss");
+        DietPlanEntity older = dietPlan(5L, "MUSCLE_GAIN", "Muscle Gain");
         when(dietPlanRepository.findByPlanDateWithMealsOrderByIdDesc(LocalDate.now()))
                 .thenReturn(List.of(latest, older));
 
@@ -84,9 +89,13 @@ class DietServiceTest {
     }
 
     @Test
-    void getAllDietPlans_invalidGoal_rejected() {
-        BadRequestException ex = assertThrows(BadRequestException.class, () -> dietService.getAllDietPlans("random"));
-        assertEquals("Invalid goal. Allowed values: WEIGHT_LOSS, MUSCLE_GAIN, MAINTENANCE, FAT_LOSS", ex.getMessage());
+    void getAllDietPlans_withGoal_normalizesAndQueries() {
+        when(dietGoalCatalogService.normalizeCode("random goal")).thenReturn("RANDOM_GOAL");
+        when(dietPlanRepository.findByGoalCodeWithMeals("RANDOM_GOAL")).thenReturn(List.of());
+
+        var response = dietService.getAllDietPlans("random goal");
+        assertEquals(0, response.size());
+        verify(dietPlanRepository).findByGoalCodeWithMeals("RANDOM_GOAL");
     }
 
     private User user(Long id, DietPlanEntity assignedPlan) {
@@ -96,9 +105,12 @@ class DietServiceTest {
         return user;
     }
 
-    private DietPlanEntity dietPlan(Long id, DietGoal goal) {
+    private DietPlanEntity dietPlan(Long id, String code, String displayName) {
         DietPlanEntity plan = new DietPlanEntity();
         setField(plan, "id", id);
+        DietGoalEntity goal = new DietGoalEntity();
+        goal.setCode(code);
+        goal.setDisplayName(displayName);
         plan.setGoal(goal);
         plan.setTitle("Plan " + id);
         plan.setPlanDate(LocalDate.now());
