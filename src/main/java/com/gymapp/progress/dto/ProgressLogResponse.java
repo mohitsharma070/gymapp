@@ -10,3 +10,5 @@ public record ProgressLogResponse(
         String notes,
         String photoUrl,
         Long workoutPlanId) {}
+
+

@@ -20,7 +20,7 @@ import lombok.Setter;
 @Table(name = "workout_plans")
 @Getter
 @Setter
-public class WorkoutPlan extends BaseEntity {
+public class WorkoutPlanEntity extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,5 +39,7 @@ public class WorkoutPlan extends BaseEntity {
     private boolean completed = false;
 
     @OneToMany(mappedBy = "workoutPlan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Exercise> exercises = new ArrayList<>();
+    private List<ExerciseEntity> exercises = new ArrayList<>();
 }
+
+

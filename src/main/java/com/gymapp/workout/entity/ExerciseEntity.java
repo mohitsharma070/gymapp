@@ -16,7 +16,7 @@ import lombok.Setter;
 @Table(name = "exercises")
 @Getter
 @Setter
-public class Exercise {
+public class ExerciseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,5 +33,7 @@ public class Exercise {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workout_plan_id", nullable = false)
-    private WorkoutPlan workoutPlan;
+    private WorkoutPlanEntity workoutPlan;
 }
+
+

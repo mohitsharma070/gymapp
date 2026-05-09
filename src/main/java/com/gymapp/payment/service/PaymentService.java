@@ -5,6 +5,7 @@ import com.gymapp.common.constants.ErrorMessages;
 import com.gymapp.common.constants.PaymentConstants;
 import com.gymapp.common.exception.BadRequestException;
 import com.gymapp.common.exception.ResourceNotFoundException;
+import com.gymapp.common.util.RepositoryHelper;
 import com.gymapp.payment.dto.CreateOrderRequest;
 import com.gymapp.payment.entity.Payment;
 import com.gymapp.payment.repository.PaymentRepository;
@@ -34,8 +35,9 @@ public class PaymentService {
 
     @Transactional
     public Map<String, Object> createOrder(CreateOrderRequest request, Long userId) {
-        Subscription subscription = subscriptionRepository.findById(request.getSubscriptionId())
-                .orElseThrow(() -> new ResourceNotFoundException(
+        Subscription subscription = RepositoryHelper.getOrThrow(
+                subscriptionRepository.findById(request.getSubscriptionId()),
+                () -> new ResourceNotFoundException(
                         ErrorMessages.SUBSCRIPTION_NOT_FOUND_WITH_ID + request.getSubscriptionId()));
 
         if (!subscription.getUser().getId().equals(userId)) {
@@ -62,8 +64,9 @@ public class PaymentService {
 
     @Transactional
     public Map<String, Object> verifyPayment(String orderId, String paymentId, String signature, Long userId) {
-        Payment payment = paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.PAYMENT_NOT_FOUND_FOR_ORDER_ID + orderId));
+        Payment payment = RepositoryHelper.getOrThrow(
+                paymentRepository.findByOrderId(orderId),
+                () -> new ResourceNotFoundException(ErrorMessages.PAYMENT_NOT_FOUND_FOR_ORDER_ID + orderId));
 
         if (!payment.getSubscription().getUser().getId().equals(userId)) {
             throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
@@ -86,3 +89,5 @@ public class PaymentService {
         return response;
     }
 }
+
+

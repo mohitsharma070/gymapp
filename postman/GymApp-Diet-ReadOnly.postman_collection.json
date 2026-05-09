@@ -1,0 +1,188 @@
+{
+  "info": {
+    "name": "GymApp - Diet ReadOnly APIs",
+    "_postman_id": "f04f14dd-fd60-4ec8-a910-f7e78496e48c",
+    "description": "Read-only Diet APIs for quick validation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login (Save jwtToken)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login status is 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "const token = json?.data?.token || json?.token;",
+              "if (token) pm.collectionVariables.set('jwtToken', token);",
+              "pm.test('jwtToken saved', () => pm.expect(pm.collectionVariables.get('jwtToken')).to.be.a('string').and.not.empty);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Diet - Get Plans",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/diet/plans?goal={{goal}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "diet", "plans"],
+          "query": [
+            {
+              "key": "goal",
+              "value": "{{goal}}",
+              "description": "Optional: WEIGHT_LOSS, MUSCLE_GAIN, MAINTENANCE, FAT_LOSS"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('ApiResponse success', () => pm.expect(json.success).to.be.true);",
+              "pm.test('Data is array', () => pm.expect(json.data).to.be.an('array'));",
+              "if (Array.isArray(json.data) && json.data.length > 0) {",
+              "  pm.collectionVariables.set('planId', json.data[0].id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Diet - Get Plan By Id",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/diet/plans/{{planId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "diet", "plans", "{{planId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('ApiResponse success', () => pm.expect(json.success).to.be.true);",
+              "pm.test('Data has id', () => pm.expect(json.data).to.have.property('id'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Diet - Get Today Plan",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/diet/plans/today",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "diet", "plans", "today"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200 or 404', () => pm.expect(pm.response.code).to.be.oneOf([200,404]));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Diet - Get Meals (Paged)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/diet/meals?page=0&size=20&sortBy=id&direction=ASC",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "diet", "meals"],
+          "query": [
+            { "key": "page", "value": "0" },
+            { "key": "size", "value": "20" },
+            { "key": "sortBy", "value": "id" },
+            { "key": "direction", "value": "ASC" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('ApiResponse success', () => pm.expect(json.success).to.be.true);",
+              "pm.test('Data has page fields', () => {",
+              "  pm.expect(json.data).to.have.property('items');",
+              "  pm.expect(json.data).to.have.property('page');",
+              "  pm.expect(json.data).to.have.property('size');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "username", "value": "" },
+    { "key": "password", "value": "" },
+    { "key": "jwtToken", "value": "" },
+    { "key": "planId", "value": "1" },
+    { "key": "goal", "value": "" }
+  ]
+}

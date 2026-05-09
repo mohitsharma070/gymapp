@@ -92,8 +92,8 @@ Current baseline:
 
 Rules:
 
-1. Never edit existing applied migration files.
-2. Add a new versioned SQL file for each schema change (`V2__...sql`, `V3__...sql`, etc.).
+1. If a migration is already applied in shared/staging/prod, do not edit it; create a new versioned file (`V2__...sql`, `V3__...sql`, etc.).
+2. For local/pre-release setups that intentionally keep a single baseline, keep `V1__baseline.sql` idempotent and consistent.
 3. Keep DDL changes out of ad-hoc runtime scripts; use migrations only.
 
 ## API Endpoints (Current)
@@ -109,6 +109,8 @@ Rules:
 ### User
 
 - `GET /api/users/me`
+- `GET /api/users/me/diet-plan`
+- `GET /api/users/me/meal-progress`
 - `GET /api/users/{userId}`
 - `PUT /api/users/{userId}`
 
@@ -121,7 +123,10 @@ Rules:
 ### Diet
 
 - `GET /api/diet-plans`
+- `GET /api/diet-plans/{id}`
+- `GET /api/diet-plans/today`
 - `GET /api/meals`
+- `POST /api/meals/{mealId}/complete`
 
 ### Progress
 
@@ -147,9 +152,16 @@ Rules:
 - `GET /api/admin/dashboard`
 - `GET /api/admin/users`
 - `PUT /api/admin/users/{id}/role`
+- `POST /api/admin/users/{userId}/diet-plan/{dietPlanId}`
 - `GET /api/admin/exercises`
 - `GET /api/admin/workout-plans`
 - `GET /api/admin/diet-plans`
+- `POST /api/admin/diet-plans`
+- `PUT /api/admin/diet-plans/{id}`
+- `DELETE /api/admin/diet-plans/{id}`
+- `POST /api/admin/diet-plans/{dietPlanId}/meals`
+- `PUT /api/admin/meals/{id}`
+- `DELETE /api/admin/meals/{id}`
 - `GET /api/admin/payments`
 
 ## Notes

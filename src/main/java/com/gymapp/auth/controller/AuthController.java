@@ -8,6 +8,7 @@ import com.gymapp.auth.dto.LoginRequest;
 import com.gymapp.auth.dto.RegisterRequest;
 import com.gymapp.auth.dto.ResetPasswordRequest;
 import com.gymapp.auth.service.AuthService;
+import com.gymapp.common.constants.ApiMessages;
 import com.gymapp.common.constants.ApiPaths;
 import com.gymapp.common.controller.BaseController;
 import com.gymapp.common.dto.ApiResponse;
@@ -29,7 +30,7 @@ public class AuthController extends BaseController {
     @PostMapping(ApiPaths.REGISTER)
     public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = authService.register(request);
-        return success("User registered successfully", response);
+        return success(String.format(ApiMessages.CREATED_SUCCESSFULLY, "User"), response);
     }
 
     @PostMapping(ApiPaths.LOGIN)
@@ -58,3 +59,5 @@ public class AuthController extends BaseController {
         return success("Password changed successfully");
     }
 }
+
+

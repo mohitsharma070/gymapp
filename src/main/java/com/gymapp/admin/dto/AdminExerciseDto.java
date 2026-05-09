@@ -1,6 +1,6 @@
 package com.gymapp.admin.dto;
 
-import com.gymapp.workout.entity.Exercise;
+import com.gymapp.workout.entity.ExerciseEntity;
 
 public class AdminExerciseDto {
 
@@ -10,7 +10,7 @@ public class AdminExerciseDto {
     private Integer reps;
     private Long workoutPlanId;
 
-    public static AdminExerciseDto from(Exercise exercise) {
+    public static AdminExerciseDto from(ExerciseEntity exercise) {
         AdminExerciseDto dto = new AdminExerciseDto();
         dto.id = exercise.getId();
         dto.name = exercise.getName();
@@ -26,3 +26,5 @@ public class AdminExerciseDto {
     public Integer getReps() { return reps; }
     public Long getWorkoutPlanId() { return workoutPlanId; }
 }
+
+

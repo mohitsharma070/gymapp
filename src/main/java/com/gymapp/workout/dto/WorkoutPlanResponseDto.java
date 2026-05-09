@@ -3,7 +3,7 @@ package com.gymapp.workout.dto;
 import java.time.LocalDate;
 import java.util.List;
 
-public record WorkoutPlanResponse(
+public record WorkoutPlanResponseDto(
         Long id,
         String title,
         String goal,
@@ -13,3 +13,5 @@ public record WorkoutPlanResponse(
 
     public record ExerciseItem(Long id, String name, Integer sets, Integer reps) {}
 }
+
+

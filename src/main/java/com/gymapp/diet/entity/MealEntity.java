@@ -1,7 +1,10 @@
 package com.gymapp.diet.entity;
 
+import com.gymapp.diet.enums.MealType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -9,10 +12,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "meals")
-public class Meal {
+@Getter
+@Setter
+@NoArgsConstructor
+public class MealEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,48 +31,15 @@ public class Meal {
     private String name;
 
     @Column(nullable = false)
-    private String mealType;
+    @Enumerated(EnumType.STRING)
+    private MealType mealType;
 
     @Column(nullable = false)
     private Integer calories;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diet_plan_id", nullable = false)
-    private DietPlan dietPlan;
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getMealType() {
-        return mealType;
-    }
-
-    public void setMealType(String mealType) {
-        this.mealType = mealType;
-    }
-
-    public Integer getCalories() {
-        return calories;
-    }
-
-    public void setCalories(Integer calories) {
-        this.calories = calories;
-    }
-
-    public DietPlan getDietPlan() {
-        return dietPlan;
-    }
-
-    public void setDietPlan(DietPlan dietPlan) {
-        this.dietPlan = dietPlan;
-    }
+    private DietPlanEntity dietPlan;
 }
+
+

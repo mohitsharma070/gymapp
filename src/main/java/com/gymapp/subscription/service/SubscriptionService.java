@@ -4,6 +4,7 @@ import com.gymapp.common.constants.SubscriptionConstants;
 import com.gymapp.common.constants.ErrorMessages;
 import com.gymapp.common.exception.BadRequestException;
 import com.gymapp.common.exception.ResourceNotFoundException;
+import com.gymapp.common.util.RepositoryHelper;
 import com.gymapp.subscription.entity.Subscription;
 import com.gymapp.subscription.enums.SubscriptionStatus;
 import com.gymapp.subscription.repository.SubscriptionRepository;
@@ -26,14 +27,16 @@ public class SubscriptionService {
 
     @Transactional(readOnly = true)
     public Subscription getMySubscription(Long userId) {
-        return subscriptionRepository.findTopByUserIdOrderByCreatedAtDesc(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.NO_SUBSCRIPTION_FOUND_FOR_USER_ID + userId));
+        return RepositoryHelper.getOrThrow(
+                subscriptionRepository.findTopByUserIdOrderByCreatedAtDesc(userId),
+                () -> new ResourceNotFoundException(ErrorMessages.NO_SUBSCRIPTION_FOUND_FOR_USER_ID + userId));
     }
 
     @Transactional
     public Subscription startSubscription(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.USER_NOT_FOUND_WITH_ID + userId));
+        User user = RepositoryHelper.getOrThrow(
+                userRepository.findById(userId),
+                () -> new ResourceNotFoundException(ErrorMessages.USER_NOT_FOUND_WITH_ID + userId));
 
         subscriptionRepository.findTopByUserIdOrderByCreatedAtDesc(userId).ifPresent(existing -> {
             if (existing.getStatus() == SubscriptionStatus.ACTIVE) {
@@ -53,8 +56,9 @@ public class SubscriptionService {
 
     @Transactional
     public Subscription cancelSubscription(Long userId) {
-        Subscription subscription = subscriptionRepository.findTopByUserIdOrderByCreatedAtDesc(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.NO_SUBSCRIPTION_FOUND_FOR_USER_ID + userId));
+        Subscription subscription = RepositoryHelper.getOrThrow(
+                subscriptionRepository.findTopByUserIdOrderByCreatedAtDesc(userId),
+                () -> new ResourceNotFoundException(ErrorMessages.NO_SUBSCRIPTION_FOUND_FOR_USER_ID + userId));
 
         if (subscription.getStatus() != SubscriptionStatus.ACTIVE) {
             throw new BadRequestException(ErrorMessages.ONLY_ACTIVE_SUBSCRIPTIONS_CAN_BE_CANCELED);
@@ -64,3 +68,5 @@ public class SubscriptionService {
         return subscriptionRepository.save(subscription);
     }
 }
+
+

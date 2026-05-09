@@ -1,13 +1,16 @@
 package com.gymapp.progress.service;
 
 import com.gymapp.common.exception.ResourceNotFoundException;
+import com.gymapp.common.dto.PageResponseDto;
+import com.gymapp.common.util.RepositoryHelper;
 import com.gymapp.progress.dto.ProgressLogRequest;
 import com.gymapp.progress.dto.ProgressLogResponse;
 import com.gymapp.progress.entity.ProgressLog;
 import com.gymapp.progress.repository.ProgressLogRepository;
 import com.gymapp.workout.repository.WorkoutPlanRepository;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,31 +42,37 @@ public class ProgressService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProgressLogResponse> getProgressLogsByUser(Long userId) {
-        return progressLogRepository.findByUserIdOrderByLogDateDescIdDesc(userId).stream()
-                .map(this::toResponse)
-                .toList();
+    public PageResponseDto<ProgressLogResponse> getProgressLogsByUser(Long userId, Pageable pageable) {
+        Page<ProgressLogResponse> page = progressLogRepository.findByUserIdOrderByLogDateDescIdDesc(userId, pageable)
+                .map(this::toResponse);
+        return PageResponseDto.from(page);
     }
 
     @Transactional(readOnly = true)
-    public List<ProgressLogResponse> getWorkoutProgressLogsByUser(Long userId) {
-        return progressLogRepository.findByUserIdAndWorkoutPlanIdIsNotNullOrderByLogDateDescIdDesc(userId).stream()
-                .map(this::toResponse)
-                .toList();
+    public PageResponseDto<ProgressLogResponse> getWorkoutProgressLogsByUser(Long userId, Pageable pageable) {
+        Page<ProgressLogResponse> page = progressLogRepository
+                .findByUserIdAndWorkoutPlanIdIsNotNullOrderByLogDateDescIdDesc(userId, pageable)
+                .map(this::toResponse);
+        return PageResponseDto.from(page);
     }
 
     @Transactional(readOnly = true)
-    public List<ProgressLogResponse> getWorkoutProgressLogsByUserAndWorkoutId(Long userId, Long workoutPlanId) {
+    public PageResponseDto<ProgressLogResponse> getWorkoutProgressLogsByUserAndWorkoutId(
+            Long userId,
+            Long workoutPlanId,
+            Pageable pageable) {
         assertWorkoutPlanExists(workoutPlanId);
-        return progressLogRepository.findByUserIdAndWorkoutPlanIdOrderByLogDateDescIdDesc(userId, workoutPlanId).stream()
-                .map(this::toResponse)
-                .toList();
+        Page<ProgressLogResponse> page = progressLogRepository
+                .findByUserIdAndWorkoutPlanIdOrderByLogDateDescIdDesc(userId, workoutPlanId, pageable)
+                .map(this::toResponse);
+        return PageResponseDto.from(page);
     }
 
     @Transactional
     public ProgressLogResponse uploadProgressPhoto(Long progressId, String photoUrl, Long userId) {
-        ProgressLog log = progressLogRepository.findById(progressId)
-                .orElseThrow(() -> new ResourceNotFoundException("Progress log not found with id: " + progressId));
+        ProgressLog log = RepositoryHelper.getOrThrow(
+                progressLogRepository.findById(progressId),
+                () -> new ResourceNotFoundException("Progress log not found with id: " + progressId));
 
         if (!log.getUserId().equals(userId)) {
             throw new AccessDeniedException("You are not allowed to modify another user's progress log");
@@ -91,3 +100,5 @@ public class ProgressService {
         }
     }
 }
+
+

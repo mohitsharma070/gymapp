@@ -44,3 +44,5 @@ public class ProgressLog extends BaseEntity {
     @Column(name = "workout_plan_id")
     private Long workoutPlanId;
 }
+
+

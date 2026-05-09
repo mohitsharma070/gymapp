@@ -14,7 +14,10 @@ public final class ApiPaths {
     public static final String USER_BASE = API_BASE + "/user";
     public static final String USERS_BASE = API_BASE + "/users";
     public static final String ADMIN_BASE = API_BASE + "/admin";
+    public static final String DIET_BASE = API_BASE + "/diet";
 
     private ApiPaths() {
     }
 }
+
+

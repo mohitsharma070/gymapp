@@ -51,3 +51,5 @@ class AdminControllerSecurityTest {
                 .andExpect(jsonPath("$.data.totalUsers").value(1));
     }
 }
+
+

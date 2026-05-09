@@ -2,12 +2,13 @@ package com.gymapp.payment.controller;
 
 import com.gymapp.common.dto.ApiResponse;
 import com.gymapp.common.controller.BaseController;
+import com.gymapp.common.constants.ApiMessages;
+import com.gymapp.common.web.annotation.CurrentUserId;
 import com.gymapp.payment.dto.CreateOrderRequest;
 import com.gymapp.payment.service.PaymentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
-import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,10 +30,9 @@ public class PaymentController extends BaseController {
     @PostMapping("/create-order")
     public ApiResponse<Map<String, Object>> createOrder(
             @Valid @RequestBody CreateOrderRequest request,
-            Authentication authentication) {
-        Long userId = getCurrentUserId(authentication);
+            @CurrentUserId Long userId) {
         Map<String, Object> response = paymentService.createOrder(request, userId);
-        return success("Payment order created successfully", response);
+        return success(String.format(ApiMessages.CREATED_SUCCESSFULLY, "Payment order"), response);
     }
 
     @PostMapping("/verify")
@@ -40,9 +40,10 @@ public class PaymentController extends BaseController {
             @RequestParam @NotBlank(message = "Order id is required") String orderId,
             @RequestParam @NotBlank(message = "Payment id is required") String paymentId,
             @RequestParam @NotBlank(message = "Signature is required") String signature,
-            Authentication authentication) {
-        Long userId = getCurrentUserId(authentication);
+            @CurrentUserId Long userId) {
         Map<String, Object> response = paymentService.verifyPayment(orderId, paymentId, signature, userId);
-        return success("Payment verified successfully", response);
+        return success(String.format(ApiMessages.UPDATED_SUCCESSFULLY, "Payment"), response);
     }
 }
+
+

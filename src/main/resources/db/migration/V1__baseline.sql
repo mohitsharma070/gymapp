@@ -46,6 +46,18 @@ CREATE TABLE IF NOT EXISTS diet_plans (
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP
 );
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'chk_diet_plans_goal'
+    ) THEN
+        ALTER TABLE diet_plans
+            ADD CONSTRAINT chk_diet_plans_goal
+            CHECK (goal IN ('WEIGHT_LOSS', 'MUSCLE_GAIN', 'MAINTENANCE', 'FAT_LOSS'));
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS meals (
     id BIGSERIAL PRIMARY KEY,
@@ -57,9 +69,86 @@ CREATE TABLE IF NOT EXISTS meals (
         FOREIGN KEY (diet_plan_id) REFERENCES diet_plans (id)
         ON DELETE CASCADE
 );
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'chk_meals_meal_type'
+    ) THEN
+        ALTER TABLE meals
+            ADD CONSTRAINT chk_meals_meal_type
+            CHECK (meal_type IN ('BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'));
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'chk_meals_calories_positive'
+    ) THEN
+        ALTER TABLE meals
+            ADD CONSTRAINT chk_meals_calories_positive
+            CHECK (calories >= 1);
+    END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_meals_diet_plan_id
     ON meals (diet_plan_id);
+
+CREATE TABLE IF NOT EXISTS meal_progress (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    meal_id BIGINT NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    completed_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP,
+    CONSTRAINT fk_meal_progress_user
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_meal_progress_meal
+        FOREIGN KEY (meal_id) REFERENCES meals (id)
+        ON DELETE CASCADE,
+    CONSTRAINT uk_meal_progress_user_meal UNIQUE (user_id, meal_id)
+);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'chk_meal_progress_status'
+    ) THEN
+        ALTER TABLE meal_progress
+            ADD CONSTRAINT chk_meal_progress_status
+            CHECK (status IN ('COMPLETED'));
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_meal_progress_user_id
+    ON meal_progress (user_id);
+CREATE INDEX IF NOT EXISTS idx_meal_progress_meal_id
+    ON meal_progress (meal_id);
+CREATE INDEX IF NOT EXISTS idx_meal_progress_completed_at
+    ON meal_progress (completed_at DESC);
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS assigned_diet_plan_id BIGINT;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'fk_users_assigned_diet_plan'
+    ) THEN
+        ALTER TABLE users
+            ADD CONSTRAINT fk_users_assigned_diet_plan
+            FOREIGN KEY (assigned_diet_plan_id) REFERENCES diet_plans (id);
+    END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_users_assigned_diet_plan_id
+    ON users (assigned_diet_plan_id);
 
 CREATE TABLE IF NOT EXISTS progress_logs (
     id BIGSERIAL PRIMARY KEY,
@@ -119,6 +208,22 @@ CREATE INDEX IF NOT EXISTS idx_progress_logs_log_date
 ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES users (id);
 CREATE INDEX IF NOT EXISTS idx_progress_logs_user_id
     ON progress_logs (user_id);
+ALTER TABLE progress_logs
+    ADD COLUMN IF NOT EXISTS workout_plan_id BIGINT;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'fk_progress_logs_workout_plan'
+    ) THEN
+        ALTER TABLE progress_logs
+            ADD CONSTRAINT fk_progress_logs_workout_plan
+            FOREIGN KEY (workout_plan_id) REFERENCES workout_plans (id);
+    END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_progress_logs_workout_plan_id
+    ON progress_logs (workout_plan_id);
 CREATE INDEX IF NOT EXISTS idx_workout_plans_scheduled_date
     ON workout_plans (scheduled_date);
 
@@ -141,3 +246,13 @@ CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires_at
     ON password_reset_tokens (expires_at);
 CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_active_by_user
     ON password_reset_tokens (user_id, used_at, expires_at);
+
+-- Soft-delete support for BaseEntity.deletedAt
+ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+ALTER TABLE workout_plans ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+ALTER TABLE diet_plans ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+ALTER TABLE meal_progress ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+ALTER TABLE password_reset_tokens ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;

@@ -1,6 +1,6 @@
 package com.gymapp.admin.dto;
 
-import com.gymapp.workout.entity.WorkoutPlan;
+import com.gymapp.workout.entity.WorkoutPlanEntity;
 import java.time.LocalDate;
 
 public class AdminWorkoutPlanDto {
@@ -11,7 +11,7 @@ public class AdminWorkoutPlanDto {
     private LocalDate scheduledDate;
     private boolean completed;
 
-    public static AdminWorkoutPlanDto from(WorkoutPlan plan) {
+    public static AdminWorkoutPlanDto from(WorkoutPlanEntity plan) {
         AdminWorkoutPlanDto dto = new AdminWorkoutPlanDto();
         dto.id = plan.getId();
         dto.title = plan.getTitle();
@@ -27,3 +27,5 @@ public class AdminWorkoutPlanDto {
     public LocalDate getScheduledDate() { return scheduledDate; }
     public boolean isCompleted() { return completed; }
 }
+
+
